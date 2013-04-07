@@ -69,7 +69,7 @@ class BoxeeRemote:
         # for changing volume (granularity in percentage)
         self.VOL_GRAN = 2
         self.KBD = 0
-        self.CURR_OFFSET = 40
+        self.CURR_OFFSET = 42
 
         # Debug mode will print things
         # Set to False to avoid printing out messages
@@ -170,11 +170,21 @@ class BoxeeRemote:
             ord('2'):'Reset',
             ord('>'):'SeekPercentageRelative(1)',
             ord('<'):'SeekPercentageRelative(-1)',
+
             curses.KEY_UP:'SendKey(270)',
             curses.KEY_DOWN:'SendKey(271)',
             curses.KEY_LEFT:'SendKey(272)',
             curses.KEY_RIGHT:'SendKey(273)',
+
+            # VIM style key bindings
+            ord('k'):'SendKey(270)',
+            ord('j'):'SendKey(271)',
+            ord('h'):'SendKey(272)',
+            ord('l'):'SendKey(273)',
             ord('\n'):'SendKey(61453)',
+            ord(' '):'SendKey(61453)',
+
+            # backspace/delete
             127:'SendKey(275)',
         }
 
@@ -213,13 +223,28 @@ def kill_curses(scr):
 
 def update_curr(boxee, scr):
     cur = boxee.run_command('GetCurrentlyPlaying')
-    m = re.search(r"(Title:)(.*)", cur)
+    title = re.search(r"(Title:)(.*)", cur)
+    artist = re.search(r"(Artist:)(.*)", cur)
+    album = re.search(r"(Album:)(.*)", cur)
+
+    curvol = boxee.get_cur_vol()
+    for i in range (0,4):
+        scr.move(boxee.CURR_OFFSET+i, 0)
+        scr.clrtoeol()
+
+    scr.addstr(boxee.CURR_OFFSET + 3, 0, "Volume: %d%%" % curvol, curses.color_pair(3))
     try:
-        res = "Currently playing : %s " % m.group(2)
+        res = "Currently playing : %s " % title.group(2)
         scr.addstr(boxee.CURR_OFFSET, 0, res, curses.color_pair(2))
+        scr.addstr(boxee.CURR_OFFSET+1, 0, 'Artist: %s' % artist.group(2), curses.color_pair(2))
+        scr.addstr(boxee.CURR_OFFSET+2, 0, 'Album: %s' % album.group(2), curses.color_pair(2))
     except:
         scr.addstr(boxee.CURR_OFFSET, 0, 'Nothing currently playing', curses.color_pair(2))
 
+def init_colors():
+    curses.start_color()
+    curses.init_pair(2, curses.COLOR_GREEN, curses.COLOR_BLACK)
+    curses.init_pair(3, curses.COLOR_BLUE, curses.COLOR_BLACK)
 
 def main():
 
@@ -243,6 +268,8 @@ key right    | boxee right
  \\ (bslash) | boxee menu
  <enter>     | boxee enter
  ` (tick)    | activate/deactivate keyboard mode
+
+ You can also use VIM style key bindings for navigation (hjkl)
 
 SYSTEM CONTROLS:
  1 | shutdown - Shutdown Boxee (not working)
@@ -268,8 +295,7 @@ PLAYBACK CONTROLS:
     boxee = BoxeeRemote()
 
     stdscr = curses.initscr()
-    curses.start_color()
-    curses.init_pair(2, curses.COLOR_GREEN, curses.COLOR_BLACK)
+    init_colors()
     curses.noecho()
     curses.cbreak()
     stdscr.keypad(1)
@@ -293,7 +319,6 @@ PLAYBACK CONTROLS:
             thread.stop()
             kill_curses(stdscr)
             sys.exit()
-        
         else:
             boxee.run_human_command( command )
     
