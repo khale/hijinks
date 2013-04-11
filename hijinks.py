@@ -301,7 +301,7 @@ PLAYBACK CONTROLS:
     stdscr.keypad(1)
 
     # non-blocking reads
-    stdscr.timeout(0)
+    #stdscr.timeout(0)
     pad = curses.newpad(100,100)
     stdscr.addstr(USAGE)
     stdscr.move(0,0)
@@ -310,17 +310,21 @@ PLAYBACK CONTROLS:
     thread.start()
 
     while True:
-        
+        time.sleep(.08) 
+
         command = -1
         while (command < 0):
             command = stdscr.getch()
         
-        if command == ord('q'):
+        if command == ord('q') and not boxee.KBD:
             thread.stop()
+            thread.join()
             kill_curses(stdscr)
             sys.exit()
+
         else:
             boxee.run_human_command( command )
+
     
 
 if __name__ == '__main__': 
